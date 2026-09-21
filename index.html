@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NSS Unit 1 Live Team Quiz</title>
+  <!-- Google Fonts & Canvas Confetti -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Firebase App & Realtime Database SDKs (v8 compat for lightweight standalone execution) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(18, 26, 43, 0.85);
+      --bg-glass: rgba(255, 255, 255, 0.05);
+      --border-subtle: rgba(255, 255, 255, 0.12);
+      --border-focus: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      
+      --group-a: #ef4444; /* Team Red / Group A */
+      --group-b: #3b82f6; /* Team Blue / Group B */
+      --group-c: #10b981; /* Team Green / Group C */
+      --group-d: #f59e0b; /* Team Yellow / Group D */
+      
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      padding: 16px;
+      position: relative;
+    }
+
+    /* Ambient background gradient spheres */
+    .ambient-bg {
+      position: fixed;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      filter: blur(80px);
+      z-index: -1;
+      pointer-events: none;
+      top: -50px;
+      left: -50px;
+    }
+    .ambient-bg-2 {
+      position: fixed;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%);
+      filter: blur(80px);
+      z-index: -1;
+      pointer-events: none;
+      bottom: -40px;
+      right: -40px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 12px 0;
+      position: relative;
+    }
+    .badge-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.7; }
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Glass Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Config Bar & Status */
+    .config-trigger {
+      position: absolute;
+      top: 10px;
+      right: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 1rem;
+      color: #fff;
+      font-family: var(--font-body);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 14px;
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: white;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Screen Views */
+    .view-screen {
+      display: none;
+      animation: fadeIn 0.35s ease;
+    }
+    .view-screen.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Lobby & Waiting View */
+    .lobby-status {
+      text-align: center;
+      padding: 20px 0;
+    }
+    .spinner {
+      width: 54px;
+      height: 54px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Group Reveal Section */
+    .group-hero {
+      border-radius: 18px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .group-hero.group-A { background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.1) 100%); border: 2px solid var(--group-a); }
+    .group-hero.group-B { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(29, 78, 216, 0.1) 100%); border: 2px solid var(--group-b); }
+    .group-hero.group-C { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(4, 120, 87, 0.1) 100%); border: 2px solid var(--group-c); }
+    .group-hero.group-D { background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(180, 83, 9, 0.1) 100%); border: 2px solid var(--group-d); }
+    
+    .group-pill {
+      font-size: 2.2rem;
+      font-weight: 800;
+      font-family: var(--font-heading);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .group-A .group-pill { color: var(--group-a); }
+    .group-B .group-pill { color: var(--group-b); }
+    .group-C .group-pill { color: var(--group-c); }
+    .group-D .group-pill { color: var(--group-d); }
+
+    .group-subtitle {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #cbd5e1;
+    }
+
+    /* Accordion for Teammates */
+    .accordion-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .accordion-header {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .accordion-content {
+      padding: 0 16px 14px;
+      display: none;
+    }
+    .accordion-content.open {
+      display: block;
+    }
+    .member-item {
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.88rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .member-item.is-you {
+      background: rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      font-weight: 600;
+    }
+
+    /* Other Groups Count Grid */
+    .other-groups-title {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin: 16px 0 8px;
+      font-weight: 600;
+    }
+    .groups-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .group-card-mini {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .group-card-mini .tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .group-card-mini .count {
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-family: var(--font-heading);
+      color: #fff;
+    }
+
+    /* Quiz Screen Styles */
+    .quiz-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .question-counter {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 4px 10px;
+      border-radius: 10px;
+    }
+    .timer-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: var(--font-heading);
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .timer-badge.urgent {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      animation: pulse 0.8s infinite;
+    }
+    
+    .timer-progress {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .timer-progress-bar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      transition: width 1s linear;
+    }
+
+    .question-text {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 600;
+      line-height: 1.45;
+      margin-bottom: 20px;
+      color: #ffffff;
+    }
+
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .option-btn {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px 16px;
+      color: #e2e8f0;
+      font-size: 0.92rem;
+      font-family: var(--font-body);
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    .option-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .option-btn:active {
+      transform: scale(0.99);
+    }
+    .option-btn.selected {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: #6366f1;
+      color: #ffffff;
+      font-weight: 600;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+    }
+    .option-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .option-btn.selected .option-index {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    .lock-status {
+      text-align: center;
+      font-size: 0.82rem;
+      color: #10b981;
+      font-weight: 600;
+      height: 20px;
+    }
+
+    /* Podium & Final Results */
+    .winner-banner {
+      text-align: center;
+      padding: 15px 0;
+    }
+    .trophy-icon {
+      font-size: 3rem;
+      margin-bottom: 8px;
+      animation: bounce 1.5s infinite alternate;
+    }
+    @keyframes bounce {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-8px); }
+    }
+    .winner-title {
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    
+    .podium-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0 20px;
+    }
+    .podium-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+    }
+    .podium-item.first {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+      border: 2px solid #f59e0b;
+    }
+    .podium-item.my-team {
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
+    }
+    .team-badge-pill {
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .team-score-val {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #fff;
+    }
+
+    .user-stat-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .stat-value {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Modal for Firebase Config */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 16px;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-card {
+      background: #111827;
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 440px;
+      width: 100%;
+    }
+    .modal-title {
+      font-family: var(--font-heading);
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 25px;
+      border: 1px solid var(--border-subtle);
+      font-size: 0.85rem;
+      display: none;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-bg"></div>
+  <div class="ambient-bg-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="badge-tag">
+        <span class="pulse-dot"></span>
+        <span>VAC 101: NSS Unit 1</span>
+      </div>
+      <h1>NSS Real-Time Live Quiz</h1>
+      <p class="subtitle">Ramanuj Gupta Degree College</p>
+      <button class="config-trigger" onclick="openConfigModal()">⚙️ Config</button>
+    </header>
+
+    <!-- SCREEN 1: Registration Form -->
+    <section id="screen-register" class="card view-screen active">
+      <h2 style="font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; margin-bottom: 6px;">Student Registration</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Enter your details to join the live session and get allotted into a group.</p>
+      
+      <form id="register-form" onsubmit="handleRegistration(event)">
+        <div class="form-group">
+          <label for="student-name">Full Name</label>
+          <input type="text" id="student-name" placeholder="e.g. Rahul Sharma" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="student-roll">Class Roll Number / College ID</label>
+          <input type="text" id="student-roll" placeholder="e.g. 24B012" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-register">
+          <span>Join Quiz Session</span>
+          <span>→</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- SCREEN 2: Waiting Lobby (Before Groups are formed) -->
+    <section id="screen-lobby" class="card view-screen">
+      <div class="lobby-status">
+        <div class="spinner"></div>
+        <h2 style="font-family: var(--font-heading); font-size: 1.3rem; margin-bottom: 8px;">Waiting for Instructor...</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+          Welcome <strong id="lobby-student-name" style="color: #fff;"></strong>! Please wait while the teacher forms the 4 groups.
+        </p>
+        <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px; display: inline-flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">👥</span>
+          <span style="font-size: 0.9rem; color: #cbd5e1;">Joined Students: <strong id="lobby-total-count" style="color: #fff;">0</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: Group Assigned View (Groups formed, waiting for Quiz Start) -->
+    <section id="screen-groups" class="card view-screen">
+      <div id="group-hero-card" class="group-hero group-A">
+        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; margin-bottom: 2px;">Your Assigned Group</div>
+        <div class="group-pill" id="my-group-name">Group A</div>
+        <div class="group-subtitle" id="my-group-sub">Collaborate & compete together!</div>
+      </div>
+
+      <!-- Teammates Accordion (Expandable list of own group members) -->
+      <div class="accordion-box">
+        <div class="accordion-header" onclick="toggleTeammatesAccordion()">
+          <span id="accordion-title">👥 Your Group Members (0)</span>
+          <span id="accordion-icon" style="transition: transform 0.2s;">▼</span>
+        </div>
+        <div class="accordion-content" id="teammates-list">
+          <!-- Teammates populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Other Groups Summary (Counts only, names hidden) -->
+      <div class="other-groups-title">Other Competing Groups</div>
+      <div class="groups-grid" id="other-groups-grid">
+        <!-- Other groups mini cards dynamically populated -->
+      </div>
+
+      <div style="margin-top: 20px; text-align: center;">
+        <p style="font-size: 0.88rem; color: #f59e0b; font-weight: 500;">
+          ⏳ Get ready! Quiz starts as soon as the teacher triggers it.
+        </p>
+      </div>
+    </section>
+
+    <!-- SCREEN 4: Live 30-Question MCQ Quiz with Countdown Timer -->
+    <section id="screen-quiz" class="card view-screen">
+      <div class="quiz-topbar">
+        <span class="question-counter" id="quiz-question-num">Question 1 of 30</span>
+        <div class="timer-badge" id="quiz-timer-badge">
+          <span>⏱️</span>
+          <span id="quiz-timer-text">30s</span>
+        </div>
+      </div>
+
+      <div class="timer-progress">
+        <div class="timer-progress-bar" id="timer-progress-bar"></div>
+      </div>
+
+      <div class="question-text" id="quiz-question-text">
+        Loading question...
+      </div>
+
+      <div class="options-grid" id="quiz-options-container">
+        <!-- 2, 3, or 4 options rendered dynamically -->
+      </div>
+
+      <div class="lock-status" id="quiz-lock-status"></div>
+    </section>
+
+    <!-- SCREEN 5: Results & Winning Team Podium -->
+    <section id="screen-results" class="card view-screen">
+      <div class="winner-banner">
+        <div class="trophy-icon">🏆</div>
+        <div class="winner-title" id="winner-team-title">Winning Team!</div>
+        <p style="font-size: 0.88rem; color: var(--text-muted);" id="winner-team-sub">Final Standings across all 4 Groups</p>
+      </div>
+
+      <div class="user-stat-card">
+        <div>
+          <div class="stat-label">Your Score</div>
+          <div class="stat-value" id="res-user-score">0 / 30</div>
+        </div>
+        <div>
+          <div class="stat-label">Your Group</div>
+          <div class="stat-value" id="res-user-group">-</div>
+        </div>
+        <div>
+          <div class="stat-label">Group Rank</div>
+          <div class="stat-value" id="res-group-rank">#1</div>
+        </div>
+      </div>
+
+      <h3 style="font-family: var(--font-heading); font-size: 1rem; margin-bottom: 10px;">Team Leaderboard</h3>
+      <div class="podium-list" id="res-podium-list">
+        <!-- Ranked groups list -->
+      </div>
+
+      <button class="btn btn-secondary" onclick="toggleExplanationReview()">
+        <span>📖 Review Question Explanations</span>
+      </button>
+      <div id="explanation-box" style="display: none; margin-top: 14px; max-height: 250px; overflow-y: auto;">
+        <!-- Question review list -->
+      </div>
+    </section>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">Message</div>
+
+  <!-- Firebase Setup Modal -->
+  <div class="modal-overlay" id="config-modal">
+    <div class="modal-card">
+      <h3 class="modal-title">Firebase Database Config</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+        Connect your free Firebase Realtime Database URL. This setting is saved in your browser.
+      </p>
+      <div class="form-group">
+        <label for="cfg-dburl">Realtime Database URL</label>
+        <input type="text" id="cfg-dburl" placeholder="https://your-app-default-rtdb.firebaseio.com">
+      </div>
+      <div class="form-group">
+        <label for="cfg-apikey">API Key (Optional)</label>
+        <input type="text" id="cfg-apikey" placeholder="AIzaSy...">
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeConfigModal()">Close</button>
+        <button class="btn btn-primary" style="flex: 1;" onclick="applyConfigModal()">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="questions.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    // State management
+    let currentStudent = null;
+    let registeredStudents = {};
+    let currentQuizState = {
+      groupsFormed: false,
+      quizStarted: false,
+      currentQuestionIndex: 0,
+      questionStartTime: 0,
+      timeLimit: 30,
+      isFinished: false
+    };
+    let localAnswerHistory = {};
+    let timerInterval = null;
+    let selectedOptionIndex = null;
+    let dbRef = null;
+
+    // Toast helper
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    // Switch screen views
+    function showScreen(screenId) {
+      document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) target.classList.add('active');
+    }
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      const fb = initFirebaseApp();
+      if (fb.db) {
+        dbRef = fb.db;
+        setupFirebaseListeners();
+      }
+
+      // Check for persisted student
+      const savedStudent = localStorage.getItem('nss_student_session');
+      if (savedStudent) {
+        try {
+          currentStudent = JSON.parse(savedStudent);
+          document.getElementById('student-name').value = currentStudent.name || '';
+          document.getElementById('student-roll').value = currentStudent.roll || '';
+          document.getElementById('lobby-student-name').innerText = currentStudent.name || '';
+          
+          if (dbRef) {
+            // Re-sync with live db
+            dbRef.ref('students/' + currentStudent.id).once('value', snapshot => {
+              const val = snapshot.val();
+              if (val) {
+                currentStudent = { id: currentStudent.id, ...val };
+                handleStateTransitions();
+              } else {
+                showScreen('screen-lobby');
+              }
+            });
+          } else {
+            showScreen('screen-lobby');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    });
+
+    // Firebase live listeners
+    function setupFirebaseListeners() {
+      if (!dbRef) return;
+
+      // 1. Listen to quiz_state node
+      dbRef.ref('quiz_state').on('value', snapshot => {
+        const state = snapshot.val();
+        if (state) {
+          currentQuizState = state;
+          handleStateTransitions();
+        }
+      });
+
+      // 2. Listen to students node
+      dbRef.ref('students').on('value', snapshot => {
+        registeredStudents = snapshot.val() || {};
+        const count = Object.keys(registeredStudents).length;
+        document.getElementById('lobby-total-count').innerText = count;
+
+        // If current student exists, update current student data
+        if (currentStudent && registeredStudents[currentStudent.id]) {
+          currentStudent = { id: currentStudent.id, ...registeredStudents[currentStudent.id] };
+        }
+
+        if (currentQuizState.groupsFormed) {
+          renderGroupView();
+        }
+        if (currentQuizState.isFinished || currentQuizState.currentQuestionIndex >= 30) {
+          renderResultsView();
+        }
+      });
+    }
+
+    // Handle flow transitions based on Firebase state
+    function handleStateTransitions() {
+      if (!currentStudent) {
+        showScreen('screen-register');
+        return;
+      }
+
+      if (currentQuizState.isFinished || currentQuizState.currentQuestionIndex >= 30) {
+        showScreen('screen-results');
+        renderResultsView();
+        return;
+      }
+
+      if (currentQuizState.quizStarted) {
+        showScreen('screen-quiz');
+        renderQuestion(currentQuizState.currentQuestionIndex);
+        return;
+      }
+
+      if (currentQuizState.groupsFormed) {
+        showScreen('screen-groups');
+        renderGroupView();
+        return;
+      }
+
+      // Default: In Lobby
+      document.getElementById('lobby-student-name').innerText = currentStudent.name;
+      showScreen('screen-lobby');
+    }
+
+    // Student Registration Handler
+    function handleRegistration(e) {
+      e.preventDefault();
+      const name = document.getElementById('student-name').value.trim();
+      const roll = document.getElementById('student-roll').value.trim().toUpperCase();
+
+      if (!name || !roll) {
+        showToast("Please enter both Name and Roll Number");
+        return;
+      }
+
+      const studentId = 'std_' + roll.replace(/[^a-zA-Z0-9]/g, '_');
+      currentStudent = {
+        id: studentId,
+        name: name,
+        roll: roll,
+        group: null,
+        score: 0,
+        joinedAt: firebase.database.ServerValue ? firebase.database.ServerValue.TIMESTAMP : Date.now(),
+        answers: {}
+      };
+
+      localStorage.setItem('nss_student_session', JSON.stringify(currentStudent));
+      document.getElementById('lobby-student-name').innerText = name;
+
+      if (dbRef) {
+        dbRef.ref('students/' + studentId).set(currentStudent)
+          .then(() => {
+            showToast("Successfully registered!");
+            handleStateTransitions();
+          })
+          .catch(err => {
+            console.error("Firebase write error:", err);
+            showToast("Saved locally (Offline/Mock Mode)");
+            handleStateTransitions();
+          });
+      } else {
+        showToast("Saved locally (Config needed for live sync)");
+        handleStateTransitions();
+      }
+    }
+
+    // Render Group Division View
+    function renderGroupView() {
+      if (!currentStudent) return;
+      const myGroup = currentStudent.group || 'A';
+      
+      const heroCard = document.getElementById('group-hero-card');
+      heroCard.className = `group-hero group-${myGroup}`;
+      document.getElementById('my-group-name').innerText = `Group ${myGroup}`;
+
+      // Populate own group members
+      const teammates = Object.values(registeredStudents).filter(s => s.group === myGroup);
+      document.getElementById('accordion-title').innerText = `👥 Your Group Members (${teammates.length})`;
+      
+      const teammatesContainer = document.getElementById('teammates-list');
+      teammatesContainer.innerHTML = '';
+      teammates.forEach(tm => {
+        const isMe = tm.roll === currentStudent.roll;
+        const div = document.createElement('div');
+        div.className = `member-item ${isMe ? 'is-you' : ''}`;
+        div.innerHTML = `
+          <span>${tm.name} ${isMe ? '<small style="color:#818cf8;">(You)</small>' : ''}</span>
+          <span style="color: var(--text-muted); font-size: 0.8rem;">#${tm.roll}</span>
+        `;
+        teammatesContainer.appendChild(div);
+      });
+
+      // Populate other groups (Counts ONLY)
+      const otherGrid = document.getElementById('other-groups-grid');
+      otherGrid.innerHTML = '';
+      ['A', 'B', 'C', 'D'].forEach(grp => {
+        if (grp !== myGroup) {
+          const count = Object.values(registeredStudents).filter(s => s.group === grp).length;
+          const mini = document.createElement('div');
+          mini.className = 'group-card-mini';
+          mini.innerHTML = `
+            <div class="tag" style="color: var(--group-${grp.toLowerCase()});">Group ${grp}</div>
+            <div class="count">${count} <span style="font-size: 0.75rem; font-weight: 400; color: var(--text-muted);">members</span></div>
+          `;
+          otherGrid.appendChild(mini);
+        }
+      });
+    }
+
+    function toggleTeammatesAccordion() {
+      const content = document.getElementById('teammates-list');
+      const icon = document.getElementById('accordion-icon');
+      content.classList.toggle('open');
+      icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    // Render Question in Synchronized Mode
+    function renderQuestion(qIndex) {
+      if (qIndex >= QUIZ_QUESTIONS.length) {
+        showScreen('screen-results');
+        renderResultsView();
+        return;
+      }
+
+      const q = QUIZ_QUESTIONS[qIndex];
+      document.getElementById('quiz-question-num').innerText = `Question ${qIndex + 1} of ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quiz-question-text').innerText = q.question;
+
+      const container = document.getElementById('quiz-options-container');
+      container.innerHTML = '';
+
+      selectedOptionIndex = (currentStudent && currentStudent.answers && currentStudent.answers[`q${qIndex}`]) 
+        ? currentStudent.answers[`q${qIndex}`].selected 
+        : (localAnswerHistory[`q${qIndex}`] !== undefined ? localAnswerHistory[`q${qIndex}`] : null);
+
+      const letters = ['A', 'B', 'C', 'D'];
+      q.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `option-btn ${selectedOptionIndex === idx ? 'selected' : ''}`;
+        btn.onclick = () => selectOption(qIndex, idx);
+        btn.innerHTML = `
+          <span class="option-index">${letters[idx]}</span>
+          <span>${optText}</span>
+        `;
+        container.appendChild(btn);
+      });
+
+      updateLockStatus();
+      startQuestionTimer();
+    }
+
+    function selectOption(qIndex, optionIndex) {
+      selectedOptionIndex = optionIndex;
+      localAnswerHistory[`q${qIndex}`] = optionIndex;
+
+      // Update UI
+      const buttons = document.querySelectorAll('.option-btn');
+      buttons.forEach((b, i) => {
+        if (i === optionIndex) b.classList.add('selected');
+        else b.classList.remove('selected');
+      });
+
+      const q = QUIZ_QUESTIONS[qIndex];
+      const isCorrect = (optionIndex === q.correctIndex);
+
+      if (currentStudent && dbRef) {
+        const answerData = {
+          selected: optionIndex,
+          isCorrect: isCorrect,
+          timestamp: Date.now()
+        };
+
+        dbRef.ref(`students/${currentStudent.id}/answers/q${qIndex}`).set(answerData);
+
+        // Recalculate student total score
+        let totalScore = 0;
+        const currentAnswers = currentStudent.answers || {};
+        currentAnswers[`q${qIndex}`] = answerData;
+        
+        Object.values(currentAnswers).forEach(ans => {
+          if (ans && ans.isCorrect) totalScore++;
+        });
+
+        dbRef.ref(`students/${currentStudent.id}/score`).set(totalScore);
+      }
+
+      updateLockStatus();
+    }
+
+    function updateLockStatus() {
+      const statusEl = document.getElementById('quiz-lock-status');
+      if (selectedOptionIndex !== null) {
+        statusEl.innerHTML = `✓ Option saved. Waiting for next question...`;
+      } else {
+        statusEl.innerHTML = ``;
+      }
+    }
+
+    // Synchronized Timer Logic
+    function startQuestionTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+
+      const timeLimit = currentQuizState.timeLimit || 30;
+      const startTime = currentQuizState.questionStartTime || Date.now();
+      
+      const timerBadge = document.getElementById('quiz-timer-badge');
+      const timerText = document.getElementById('quiz-timer-text');
+      const progressBar = document.getElementById('timer-progress-bar');
+
+      function updateClock() {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = Math.max(0, timeLimit - elapsed);
+
+        timerText.innerText = `${remaining}s`;
+        const pct = (remaining / timeLimit) * 100;
+        progressBar.style.width = `${pct}%`;
+
+        if (remaining <= 5) {
+          timerBadge.classList.add('urgent');
+        } else {
+          timerBadge.classList.remove('urgent');
+        }
+
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+        }
+      }
+
+      updateClock();
+      timerInterval = setInterval(updateClock, 500);
+    }
+
+    // Render Final Results & Podium
+    function renderResultsView() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
+      // Calculate Group aggregates
+      const groupScores = { A: 0, B: 0, C: 0, D: 0 };
+      const groupMembers = { A: 0, B: 0, C: 0, D: 0 };
+
+      Object.values(registeredStudents).forEach(s => {
+        if (s.group && groupScores[s.group] !== undefined) {
+          groupScores[s.group] += (s.score || 0);
+          groupMembers[s.group]++;
+        }
+      });
+
+      const ranked = ['A', 'B', 'C', 'D'].map(grp => ({
+        group: grp,
+        totalScore: groupScores[grp],
+        count: groupMembers[grp] || 1,
+        avgScore: groupScores[grp] / (groupMembers[grp] || 1)
+      })).sort((a, b) => b.totalScore - a.totalScore);
+
+      const winner = ranked[0];
+      const winTitle = document.getElementById('winner-team-title');
+      winTitle.innerText = `Group ${winner.group} Wins!`;
+      winTitle.style.color = `var(--group-${winner.group.toLowerCase()})`;
+
+      // My stats
+      const myGroup = currentStudent ? currentStudent.group : 'A';
+      const myScore = currentStudent ? (currentStudent.score || 0) : 0;
+      document.getElementById('res-user-score').innerText = `${myScore} / 30`;
+      document.getElementById('res-user-group').innerText = `Group ${myGroup}`;
+      
+      const myRankIndex = ranked.findIndex(r => r.group === myGroup);
+      document.getElementById('res-group-rank').innerText = `#${myRankIndex + 1}`;
+
+      // Render Podium List
+      const listEl = document.getElementById('res-podium-list');
+      listEl.innerHTML = '';
+      const medals = ['🥇', '🥈', '🥉', '4️⃣'];
+      
+      ranked.forEach((item, index) => {
+        const isMyTeam = (item.group === myGroup);
+        const div = document.createElement('div');
+        div.className = `podium-item ${index === 0 ? 'first' : ''} ${isMyTeam ? 'my-team' : ''}`;
+        div.innerHTML = `
+          <div class="team-badge-pill">
+            <span>${medals[index]}</span>
+            <span style="color: var(--group-${item.group.toLowerCase()});">Group ${item.group}</span>
+            ${isMyTeam ? '<small style="color:#818cf8; font-size: 0.75rem;">(Your Team)</small>' : ''}
+          </div>
+          <div class="team-score-val">${item.totalScore} pts</div>
+        `;
+        listEl.appendChild(div);
+      });
+    }
+
+    function toggleExplanationReview() {
+      const box = document.getElementById('explanation-box');
+      if (box.style.display === 'none') {
+        box.style.display = 'block';
+        box.innerHTML = '';
+        QUIZ_QUESTIONS.forEach((q, i) => {
+          const item = document.createElement('div');
+          item.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 0.85rem;';
+          item.innerHTML = `
+            <strong>Q${i+1}. ${q.question}</strong><br>
+            <span style="color:#10b981; font-weight:600;">Ans: ${q.options[q.correctIndex]}</span><br>
+            <small style="color:var(--text-muted);">${q.explanation}</small>
+          `;
+          box.appendChild(item);
+        });
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
+    // Config modal helpers
+    function openConfigModal() {
+      const cfg = getFirebaseConfig();
+      document.getElementById('cfg-dburl').value = cfg.databaseURL || '';
+      document.getElementById('cfg-apikey').value = cfg.apiKey || '';
+      document.getElementById('config-modal').classList.add('open');
+    }
+    function closeConfigModal() {
+      document.getElementById('config-modal').classList.remove('open');
+    }
+    function applyConfigModal() {
+      const dburl = document.getElementById('cfg-dburl').value.trim();
+      const apikey = document.getElementById('cfg-apikey').value.trim();
+      const current = getFirebaseConfig();
+      current.databaseURL = dburl;
+      if (apikey) current.apiKey = apikey;
+      saveFirebaseConfig(current);
+      closeConfigModal();
+      showToast("Firebase Config saved! Reloading...");
+      setTimeout(() => location.reload(), 800);
+    }
+  </script>
+</body>
+</html>

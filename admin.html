@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Admin Dashboard - NSS Live Team Quiz</title>
+  <!-- Google Fonts & Chart.js -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Firebase App & Realtime Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: rgba(17, 24, 39, 0.85);
+      --border: rgba(255, 255, 255, 0.1);
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      
+      --group-a: #ef4444;
+      --group-b: #3b82f6;
+      --group-c: #10b981;
+      --group-d: #f59e0b;
+      
+      --accent: #6366f1;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .admin-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+    .status-badge.offline {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 840px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+    }
+
+    .card-title {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-family: var(--font-heading);
+      font-size: 0.92rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e5e7eb;
+      border: 1px solid var(--border);
+    }
+
+    /* Control action strip */
+    .control-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    /* Group Overview Scoreboard */
+    .scoreboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 600px) {
+      .scoreboard-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .group-score-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .group-score-box.group-a { border-top: 4px solid var(--group-a); }
+    .group-score-box.group-b { border-top: 4px solid var(--group-b); }
+    .group-score-box.group-c { border-top: 4px solid var(--group-c); }
+    .group-score-box.group-d { border-top: 4px solid var(--group-d); }
+
+    .group-name-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .group-score-num {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 4px 0;
+      color: #fff;
+    }
+    .group-member-count {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Synchronized Question Control */
+    .live-q-box {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .q-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .q-text {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .q-correct-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* Student List Table */
+    .table-container {
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+    th, td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    th {
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 600;
+      color: #d1d5db;
+      position: sticky;
+      top: 0;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .tag-grp {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+    .tag-grp.grp-A { background: rgba(239, 68, 68, 0.2); color: var(--group-a); }
+    .tag-grp.grp-B { background: rgba(59, 130, 246, 0.2); color: var(--group-b); }
+    .tag-grp.grp-C { background: rgba(16, 185, 129, 0.2); color: var(--group-c); }
+    .tag-grp.grp-D { background: rgba(245, 158, 11, 0.2); color: var(--group-d); }
+
+    /* Modal for Config */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-card {
+      background: #111827;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      max-width: 460px;
+      width: 100%;
+    }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 6px; }
+    input[type="text"] {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      color: #fff;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <header>
+      <div>
+        <h1>🎓 NSS Quiz Instructor Panel</h1>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Real-time Synchronized Control & Leaderboard</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span id="conn-status" class="status-badge">● Database Connected</span>
+        <button class="btn btn-secondary" onclick="openConfigModal()">⚙️ DB Config</button>
+        <button class="btn btn-secondary" onclick="window.open('index.html', '_blank')">📱 Open Student View</button>
+      </div>
+    </header>
+
+    <!-- Group Scoreboard Overview -->
+    <div class="card">
+      <div class="card-title">
+        <span>🏆 Live Group Standings</span>
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal;">Total Registered: <strong id="total-reg-count" style="color:#fff;">0</strong></span>
+      </div>
+      <div class="scoreboard-grid">
+        <div class="group-score-box group-a">
+          <div class="group-name-tag" style="color: var(--group-a);">Group A</div>
+          <div class="group-score-num" id="score-grp-a">0</div>
+          <div class="group-member-count" id="count-grp-a">0 students</div>
+        </div>
+        <div class="group-score-box group-b">
+          <div class="group-name-tag" style="color: var(--group-b);">Group B</div>
+          <div class="group-score-num" id="score-grp-b">0</div>
+          <div class="group-member-count" id="count-grp-b">0 students</div>
+        </div>
+        <div class="group-score-box group-c">
+          <div class="group-name-tag" style="color: var(--group-c);">Group C</div>
+          <div class="group-score-num" id="score-grp-c">0</div>
+          <div class="group-member-count" id="count-grp-c">0 students</div>
+        </div>
+        <div class="group-score-box group-d">
+          <div class="group-name-tag" style="color: var(--group-d);">Group D</div>
+          <div class="group-score-num" id="score-grp-d">0</div>
+          <div class="group-member-count" id="count-grp-d">0 students</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Session Flow Controls -->
+      <div class="card">
+        <div class="card-title">🕹️ Session Flow Actions</div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+          Control state transitions across all student smartphones simultaneously.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Step 1 -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 12px;">
+            <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 4px;">Step 1: Divide into 4 Groups</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Randomly and evenly distributes all registered students into Groups A, B, C, D and enables team reveal on their screens.</p>
+            <button class="btn btn-warning" onclick="divideStudentsIntoGroups()">
+              <span>🔀 Divide Students into Groups (A, B, C, D)</span>
+            </button>
+          </div>
+
+          <!-- Step 2 -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 12px;">
+            <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 4px;">Step 2: Start 30-Question Live Quiz</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Launches the 30-second live synchronized timer and broadcasts Question 1 to all connected phones.</p>
+            <button class="btn btn-success" onclick="startLiveQuiz()">
+              <span>🚀 Start Synchronized Quiz</span>
+            </button>
+          </div>
+
+          <!-- Reset / Finish -->
+          <div style="display: flex; gap: 10px; margin-top: 4px;">
+            <button class="btn btn-primary" style="flex: 1;" onclick="finishQuizSession()">
+              <span>🏁 End Quiz & Show Winner</span>
+            </button>
+            <button class="btn btn-danger" onclick="resetQuizSession()">
+              <span>🔄 Reset Session</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Synchronized Question Broadcast -->
+      <div class="card">
+        <div class="card-title">
+          <span>📡 Question Broadcaster</span>
+          <span id="q-timer-display" style="font-size: 0.9rem; font-weight: 700; color: #f59e0b;">⏱️ 30s</span>
+        </div>
+
+        <div class="live-q-box">
+          <div class="q-header">
+            <span style="font-size: 0.85rem; font-weight: 700; color: #818cf8;" id="admin-q-num">Question 1 of 30</span>
+            <span class="q-correct-badge" id="admin-q-ans">Answer: Option B</span>
+          </div>
+          <div class="q-text" id="admin-q-text">Click 'Start Synchronized Quiz' to begin broadcast.</div>
+        </div>
+
+        <div class="control-strip">
+          <button class="btn btn-secondary" onclick="changeQuestion(-1)">← Prev Q</button>
+          <button class="btn btn-primary" onclick="changeQuestion(1)">Next Q →</button>
+          <button class="btn btn-secondary" id="btn-toggle-auto" onclick="toggleAutoAdvance()">
+            <span>Auto-Advance: ON</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Roster Table -->
+    <div class="card">
+      <div class="card-title">
+        <span>👥 Registered Volunteers & Scores</span>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Roll Number</th>
+              <th>Student Name</th>
+              <th>Assigned Group</th>
+              <th>Score (out of 30)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="students-table-body">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Firebase Config -->
+  <div class="modal-overlay" id="config-modal">
+    <div class="modal-card">
+      <h3 style="font-family: var(--font-heading); font-size: 1.2rem; margin-bottom: 12px;">Firebase Realtime Database Setup</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+        Paste your Firebase Database URL here. This links all student phones with the admin controls.
+      </p>
+      <div class="form-group">
+        <label for="cfg-dburl">Realtime Database URL</label>
+        <input type="text" id="cfg-dburl" placeholder="https://your-app-default-rtdb.firebaseio.com">
+      </div>
+      <div class="form-group">
+        <label for="cfg-apikey">API Key (Optional)</label>
+        <input type="text" id="cfg-apikey" placeholder="AIzaSy...">
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeConfigModal()">Close</button>
+        <button class="btn btn-primary" style="flex: 1;" onclick="applyConfigModal()">Save Config</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="questions.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    let dbRef = null;
+    let students = {};
+    let quizState = {
+      groupsFormed: false,
+      quizStarted: false,
+      currentQuestionIndex: 0,
+      questionStartTime: 0,
+      timeLimit: 30,
+      isFinished: false
+    };
+    let autoAdvance = true;
+    let autoAdvanceTimer = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const fb = initFirebaseApp();
+      if (fb.db) {
+        dbRef = fb.db;
+        setupListeners();
+      } else {
+        const badge = document.getElementById('conn-status');
+        badge.className = 'status-badge offline';
+        badge.innerText = '● Offline / Config Needed';
+      }
+    });
+
+    function setupListeners() {
+      // Listen to quiz_state
+      dbRef.ref('quiz_state').on('value', snap => {
+        const state = snap.val();
+        if (state) {
+          quizState = state;
+          updateAdminQuestionDisplay();
+        }
+      });
+
+      // Listen to students
+      dbRef.ref('students').on('value', snap => {
+        students = snap.val() || {};
+        renderDashboard();
+      });
+    }
+
+    function renderDashboard() {
+      const list = Object.values(students);
+      document.getElementById('total-reg-count').innerText = list.length;
+
+      // Group tallies
+      const scores = { A: 0, B: 0, C: 0, D: 0 };
+      const counts = { A: 0, B: 0, C: 0, D: 0 };
+
+      list.forEach(s => {
+        if (s.group && scores[s.group] !== undefined) {
+          scores[s.group] += (s.score || 0);
+          counts[s.group]++;
+        }
+      });
+
+      ['a', 'b', 'c', 'd'].forEach(g => {
+        const G = g.toUpperCase();
+        document.getElementById(`score-grp-${g}`).innerText = scores[G];
+        document.getElementById(`count-grp-${g}`).innerText = `${counts[G]} student${counts[G] === 1 ? '' : 's'}`;
+      });
+
+      // Table body
+      const tbody = document.getElementById('students-table-body');
+      tbody.innerHTML = '';
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">No students registered yet. Share the quiz link with volunteers!</td></tr>`;
+        return;
+      }
+
+      list.sort((a, b) => (b.score || 0) - (a.score || 0)).forEach(s => {
+        const tr = document.createElement('tr');
+        const grp = s.group || 'Unassigned';
+        tr.innerHTML = `
+          <td><strong>${s.roll}</strong></td>
+          <td>${s.name}</td>
+          <td><span class="tag-grp grp-${grp}">${grp}</span></td>
+          <td><strong style="color: #34d399;">${s.score || 0}</strong> / 30</td>
+          <td><span style="color: #10b981; font-size: 0.8rem;">Active</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Step 1: Divide Students into 4 Groups A, B, C, D
+    function divideStudentsIntoGroups() {
+      if (!dbRef) {
+        alert("Please configure Firebase connection first.");
+        return;
+      }
+
+      const keys = Object.keys(students);
+      if (keys.length === 0) {
+        alert("No registered students found to divide!");
+        return;
+      }
+
+      // Shuffle array randomly
+      const shuffled = [...keys].sort(() => 0.5 - Math.random());
+      const groups = ['A', 'B', 'C', 'D'];
+      const updates = {};
+
+      shuffled.forEach((studentId, idx) => {
+        const assignedGroup = groups[idx % 4];
+        updates[`students/${studentId}/group`] = assignedGroup;
+      });
+
+      updates['quiz_state/groupsFormed'] = true;
+      updates['quiz_state/quizStarted'] = false;
+      updates['quiz_state/isFinished'] = false;
+
+      dbRef.ref().update(updates).then(() => {
+        alert(`Successfully divided ${shuffled.length} students across Groups A, B, C, and D!`);
+      });
+    }
+
+    // Step 2: Start Synchronized Live Quiz
+    function startLiveQuiz() {
+      if (!dbRef) return;
+      const updates = {
+        'quiz_state/quizStarted': true,
+        'quiz_state/currentQuestionIndex': 0,
+        'quiz_state/questionStartTime': Date.now(),
+        'quiz_state/timeLimit': 30,
+        'quiz_state/isFinished': false
+      };
+
+      dbRef.ref().update(updates).then(() => {
+        updateAdminQuestionDisplay();
+        startAutoAdvanceTimer();
+      });
+    }
+
+    function updateAdminQuestionDisplay() {
+      const idx = quizState.currentQuestionIndex || 0;
+      if (idx >= QUIZ_QUESTIONS.length) {
+        document.getElementById('admin-q-num').innerText = `Completed`;
+        document.getElementById('admin-q-text').innerText = `All 30 questions completed! Showing final podium on student screens.`;
+        document.getElementById('admin-q-ans').innerText = `Quiz Finished`;
+        return;
+      }
+
+      const q = QUIZ_QUESTIONS[idx];
+      document.getElementById('admin-q-num').innerText = `Question ${idx + 1} of ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('admin-q-text').innerText = q.question;
+      document.getElementById('admin-q-ans').innerText = `Correct Ans: ${q.options[q.correctIndex]}`;
+    }
+
+    function changeQuestion(delta) {
+      if (!dbRef) return;
+      const current = quizState.currentQuestionIndex || 0;
+      const next = Math.max(0, Math.min(QUIZ_QUESTIONS.length, current + delta));
+      
+      const isFin = (next >= QUIZ_QUESTIONS.length);
+      dbRef.ref('quiz_state').update({
+        currentQuestionIndex: next,
+        questionStartTime: Date.now(),
+        isFinished: isFin
+      }).then(() => {
+        if (!isFin && autoAdvance) {
+          startAutoAdvanceTimer();
+        }
+      });
+    }
+
+    function startAutoAdvanceTimer() {
+      if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+      if (!autoAdvance) return;
+
+      autoAdvanceTimer = setTimeout(() => {
+        if (quizState.quizStarted && !quizState.isFinished && quizState.currentQuestionIndex < QUIZ_QUESTIONS.length) {
+          changeQuestion(1);
+        }
+      }, 30500); // 30s + 500ms grace period
+    }
+
+    function toggleAutoAdvance() {
+      autoAdvance = !autoAdvance;
+      const btn = document.getElementById('btn-toggle-auto');
+      btn.innerHTML = `<span>Auto-Advance: ${autoAdvance ? 'ON' : 'OFF'}</span>`;
+      if (autoAdvance && quizState.quizStarted) {
+        startAutoAdvanceTimer();
+      } else if (autoAdvanceTimer) {
+        clearTimeout(autoAdvanceTimer);
+      }
+    }
+
+    function finishQuizSession() {
+      if (!dbRef) return;
+      dbRef.ref('quiz_state').update({
+        isFinished: true,
+        currentQuestionIndex: 30
+      });
+    }
+
+    function resetQuizSession() {
+      if (!confirm("Are you sure you want to reset the quiz session? This clears student answers and group assignments.")) return;
+      if (!dbRef) return;
+
+      const updates = {
+        'quiz_state': {
+          groupsFormed: false,
+          quizStarted: false,
+          currentQuestionIndex: 0,
+          questionStartTime: 0,
+          timeLimit: 30,
+          isFinished: false
+        }
+      };
+
+      // Reset student scores and answers
+      Object.keys(students).forEach(sid => {
+        updates[`students/${sid}/score`] = 0;
+        updates[`students/${sid}/answers`] = null;
+        updates[`students/${sid}/group`] = null;
+      });
+
+      dbRef.ref().update(updates).then(() => {
+        alert("Quiz session reset successfully!");
+      });
+    }
+
+    // Modal Config
+    function openConfigModal() {
+      const cfg = getFirebaseConfig();
+      document.getElementById('cfg-dburl').value = cfg.databaseURL || '';
+      document.getElementById('cfg-apikey').value = cfg.apiKey || '';
+      document.getElementById('config-modal').classList.add('open');
+    }
+    function closeConfigModal() {
+      document.getElementById('config-modal').classList.remove('open');
+    }
+    function applyConfigModal() {
+      const dburl = document.getElementById('cfg-dburl').value.trim();
+      const apikey = document.getElementById('cfg-apikey').value.trim();
+      const current = getFirebaseConfig();
+      current.databaseURL = dburl;
+      if (apikey) current.apiKey = apikey;
+      saveFirebaseConfig(current);
+      closeConfigModal();
+      location.reload();
+    }
+  </script>
+</body>
+</html>
