@@ -374,12 +374,15 @@
           </div>
 
           <!-- Reset / Finish -->
-          <div style="display: flex; gap: 10px; margin-top: 4px;">
+          <div style="display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
             <button class="btn btn-primary" style="flex: 1;" onclick="finishQuizSession()">
               <span>🏁 End Quiz & Show Winner</span>
             </button>
-            <button class="btn btn-danger" onclick="resetQuizSession()">
-              <span>🔄 Reset Session</span>
+            <button class="btn btn-warning" onclick="resetQuizSession()">
+              <span>🔄 Reset Scores</span>
+            </button>
+            <button class="btn btn-danger" onclick="purgeAllStudents()">
+              <span>🗑️ Purge All Students</span>
             </button>
           </div>
         </div>
@@ -423,7 +426,7 @@
               <th>Student Name</th>
               <th>Assigned Group</th>
               <th>Score (out of 30)</th>
-              <th>Status</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="students-table-body">
@@ -503,7 +506,7 @@
     }
 
     function renderDashboard() {
-      const list = Object.values(students);
+      const list = Object.entries(students).map(([id, data]) => ({ id, ...data }));
       document.getElementById('total-reg-count').innerText = list.length;
 
       // Group tallies
@@ -539,7 +542,11 @@
           <td>${s.name}</td>
           <td><span class="tag-grp grp-${grp}">${grp}</span></td>
           <td><strong style="color: #34d399;">${s.score || 0}</strong> / 30</td>
-          <td><span style="color: #10b981; font-size: 0.8rem;">Active</span></td>
+          <td>
+            <button onclick="deleteStudent('${s.id}', '${s.name.replace(/'/g, "\\'")}')" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;">
+              🗑️ Delete
+            </button>
+          </td>
         `;
         tbody.appendChild(tr);
       });
@@ -656,9 +663,37 @@
       });
     }
 
-    function resetQuizSession() {
-      if (!confirm("Are you sure you want to reset the quiz session? This clears student answers and group assignments.")) return;
+    // Delete single student
+    function deleteStudent(studentId, name) {
+      if (!confirm(`Remove student "${name}" from the database?`)) return;
       if (!dbRef) return;
+      dbRef.ref('students/' + studentId).remove().then(() => {
+        console.log(`Removed student ${studentId}`);
+      });
+    }
+
+    // Complete Database Purge
+    function purgeAllStudents() {
+      if (!confirm("⚠️ FULL RESET: Delete ALL registered students and reset the entire database to empty?")) return;
+      if (!dbRef) return;
+
+      dbRef.ref('students').remove().then(() => {
+        dbRef.ref('quiz_state').set({
+          groupsFormed: false,
+          quizStarted: false,
+          currentQuestionIndex: 0,
+          questionStartTime: 0,
+          timeLimit: 30,
+          isFinished: false
+        }).then(() => {
+          alert("All students removed and session completely reset!");
+        });
+      });
+    }
+
+    function resetQuizSession() {
+      const choice = confirm("Do you want to reset the quiz session?\n\n- Click OK to RESET SCORES & GROUPS (keep registered students)\n- Click CANCEL to abort (or use 'Purge All Students' button to wipe all names)");
+      if (!choice || !dbRef) return;
 
       const updates = {
         'quiz_state': {
@@ -679,7 +714,7 @@
       });
 
       dbRef.ref().update(updates).then(() => {
-        alert("Quiz session reset successfully!");
+        alert("Quiz scores and groups reset successfully!");
       });
     }
 
